@@ -201,6 +201,7 @@ class LockableNotificationProcessor(NotificationProcessor):
         if notification is None:
             logger.info(f'Could not obtain a lock on notification '
                         f'{self.notification.pid}\n')
+            logger.info(f"self.notification.payload {self.notification.payload}")
         else:
             logger.info(f'Obtained lock on {notification}')
             self.notification = notification
