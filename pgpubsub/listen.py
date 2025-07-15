@@ -201,9 +201,16 @@ class LockableNotificationProcessor(NotificationProcessor):
         if notification is None:
             logger.info(f'Could not obtain a lock on notification '
                         f'{self.notification.pid}\n')
-            logger.info(f"self.notification.created_at {self.notification.created_at}")
-            logger.info(f"self.notification.channel {self.notification.channel}")
-            logger.info(f"self.notification.payload {self.notification.payload}")
+            # we'll assume this is the locked pgpubsub notification
+            locked_notification = (
+                Notification.objects.select_for_update(
+                    skip_locked=False).filter(
+                    payload_filter,
+                    channel=self.notification.channel,
+                ).first()
+            )
+            logger.info(f"locked pgpubsub notification: {locked_notification}")
+            logger.info(f"postgres notification payload {self.notification.payload}")
         else:
             logger.info(f'Obtained lock on {notification}')
             self.notification = notification
