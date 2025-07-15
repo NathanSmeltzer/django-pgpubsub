@@ -245,3 +245,55 @@ def test_persistent_notification_has_a_db_version(pg_connection, tx_start_time):
     assert 1 == len(pg_connection.notifies)
     stored_notification = Notification.from_channel(channel=MediaTriggerChannel).get()
     assert stored_notification.db_version == latest_app_migration.id
+
+
+@pytest.mark.django_db(transaction=True)
+def test_lockable_notification_processor_when_notification_is_none(pg_connection, caplog):
+    """Test the branch when notification is None due to another process holding the lock
+    # todo: fix
+    docker compose exec app pytest pgpubsub/tests/test_core.py::test_lockable_notification_processor_when_notification_is_none
+    """
+    from pgpubsub.listen import LockableNotificationProcessor
+    from pgpubsub.compatibility import Notify
+    from unittest.mock import patch, MagicMock
+    import logging
+
+    # Create a notification to trigger the channel
+    media = Media.objects.create(name='test.jpg', content_type='image/png', size=1000)
+    pg_connection.poll()
+    notify = pg_connection.notifies.pop(0)
+
+    # Mock the select_for_update query to return None (simulating locked notification)
+    with patch('pgpubsub.models.Notification.objects.select_for_update') as mock_select:
+        mock_queryset = MagicMock()
+        mock_queryset.filter.return_value.first.return_value = None
+        mock_select.return_value = mock_queryset
+
+        # Also mock the second query that gets the locked notification
+        with patch('pgpubsub.models.Notification.objects.select_for_update') as mock_select2:
+            mock_queryset2 = MagicMock()
+            mock_locked_notification = MagicMock()
+            mock_locked_notification.__str__ = MagicMock(return_value='locked_notification')
+            mock_queryset2.filter.return_value.first.return_value = mock_locked_notification
+
+            # The second call should be the skip_locked=False query
+            def side_effect(skip_locked=None):
+                if skip_locked is True:
+                    return mock_queryset
+                elif skip_locked is False:
+                    return mock_queryset2
+                return mock_queryset
+
+            mock_select.side_effect = side_effect
+            mock_select2.side_effect = side_effect
+
+            processor = LockableNotificationProcessor(notify, pg_connection)
+
+            with caplog.at_level(logging.INFO):
+                processor.process()
+
+            # Verify the logging statements in the None branch
+            log_messages = [record.message for record in caplog.records]
+            assert any('Could not obtain a lock on notification' in msg for msg in log_messages)
+            assert any('locked pgpubsub notification: locked_notification' in msg for msg in log_messages)
+            assert any('postgres notification payload' in msg for msg in log_messages)
