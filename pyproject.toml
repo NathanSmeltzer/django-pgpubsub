@@ -27,7 +27,7 @@ name = "django-pgpubsub"
 packages = [
   { include = "pgpubsub" }
 ]
-version = "1.3.2"
+version = "1.3.3"
 description = "Forked version with more logging for troubleshooting"
 authors = ["Opus 10 Engineering"]
 classifiers = [
