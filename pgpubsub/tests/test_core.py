@@ -250,7 +250,6 @@ def test_persistent_notification_has_a_db_version(pg_connection, tx_start_time):
 @pytest.mark.django_db(transaction=True)
 def test_lockable_notification_processor_when_notification_is_none(pg_connection, caplog):
     """Test the branch when notification is None due to another process holding the lock
-    # todo: fix
     docker compose exec app pytest pgpubsub/tests/test_core.py::test_lockable_notification_processor_when_notification_is_none
     """
     from pgpubsub.listen import LockableNotificationProcessor

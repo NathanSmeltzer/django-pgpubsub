@@ -201,8 +201,6 @@ class LockableNotificationProcessor(NotificationProcessor):
         if notification is None:
             logger.info(f'Could not obtain a lock on notification '
                         f'{self.notification.pid}\n')
-            # todo: remove purposeful error
-            logger.info(f"self.notification.created_at: {self.notification.created_at}")
             # we'll assume this is the locked pgpubsub notification
             locked_notification = (
                 Notification.objects.select_for_update(
