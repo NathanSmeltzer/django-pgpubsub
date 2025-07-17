@@ -1,6 +1,8 @@
 services:
   db:
     image: postgres:13
+    # todo: remove if doesn't solve
+    user: "${UID}:${GID}"
     volumes:
       - ./.db:/var/lib/postgresql/data:z
     environment:

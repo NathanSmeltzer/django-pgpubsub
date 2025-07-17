@@ -14,6 +14,11 @@ messaging services, such as
 [Celery](https://docs.celeryq.dev/en/stable/search.html?q=ampq)
 
 
+Dev
+----
+docker compose up app --build
+docker compose exec app pytest
+
 Documentation
 -------------
 
