@@ -1,4 +1,5 @@
 import logging
+import os
 import multiprocessing
 
 from django.core.management import BaseCommand
@@ -67,8 +68,15 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+
+        # Create logs directory if it doesn't exist
+        log_dir = os.getenv("PGPUBSUB_LOG_DIR", "/app/logs")
+        os.makedirs(log_dir, exist_ok=True)
+
         logging.basicConfig(
-            format=options.get("logformat"), level=options.get("loglevel").upper()
+            filename=os.path.join(log_dir, "pgpubsub.log"),
+            format=options.get("logformat"),
+            level=options.get("loglevel").upper()
         )
         channel_names = options.get('channels')
         processes = options.get('processes') or 1

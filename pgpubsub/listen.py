@@ -201,7 +201,6 @@ class LockableNotificationProcessor(NotificationProcessor):
         if notification is None:
             logger.info(f'Could not obtain a lock on notification '
                         f'{self.notification.pid}\n')
-            # we'll assume this is the locked pgpubsub notification
             notification_without_skip_locked = (
                 Notification.objects.select_for_update(
                     skip_locked=False).filter(
