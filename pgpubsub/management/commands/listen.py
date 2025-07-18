@@ -6,6 +6,7 @@ from django.core.management import BaseCommand
 from django.db import connection
 
 from pgpubsub.listen import listen, start_listen_in_a_process
+from pgpubsub.logging_utils import setup_pgpubsub_logging
 
 
 class Command(BaseCommand):
@@ -68,16 +69,17 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-
-        # Create logs directory if it doesn't exist
+        # Set up pgpubsub-specific logging
         log_dir = os.getenv("PGPUBSUB_LOG_DIR", "/app/logs")
-        os.makedirs(log_dir, exist_ok=True)
-
-        logging.basicConfig(
-            filename=os.path.join(log_dir, "pgpubsub.log"),
-            format=options.get("logformat"),
-            level=options.get("loglevel").upper()
+        print(f"Using log directory: {log_dir}")
+        
+        setup_pgpubsub_logging(
+            log_dir=log_dir,
+            log_level=options.get("loglevel"),
+            log_format=options.get("logformat"),
+            propagate=False
         )
+        
         channel_names = options.get('channels')
         processes = options.get('processes') or 1
         recover = options.get('recover', False)

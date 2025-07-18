@@ -1,5 +1,6 @@
 import os
 import tempfile
+import logging
 from unittest.mock import patch, MagicMock
 import pytest
 from django.core.management import call_command
@@ -17,8 +18,6 @@ class TestListenCommand(TestCase):
             os.remove(self.log_file)
         os.rmdir(self.temp_dir)
 
-    # todo: skip/remove if tested working manually
-    @pytest.mark.skip(reason="can't get test to work")
     @patch('pgpubsub.management.commands.listen.listen')
     def test_listen_command_creates_log_file(self, mock_listen):
         """Test that the listen command creates a log file in the specified directory.
@@ -95,3 +94,30 @@ class TestListenCommand(TestCase):
             # Check log level and format
             self.assertEqual(call_args[1]['level'], 'DEBUG')
             self.assertEqual(call_args[1]['format'], '%(levelname)s: %(message)s')
+    
+    def test_logging_utils_setup(self):
+        """Test the logging utilities work correctly."""
+        from pgpubsub.logging_utils import setup_pgpubsub_logging
+        
+        # Set up logging to temp directory
+        setup_pgpubsub_logging(
+            log_dir=self.temp_dir,
+            log_level="DEBUG",
+            log_format="%(levelname)s: %(message)s"
+        )
+        
+        # Test that pgpubsub logger is configured
+        pgpubsub_logger = logging.getLogger('pgpubsub')
+        self.assertEqual(pgpubsub_logger.level, logging.DEBUG)
+        self.assertEqual(len(pgpubsub_logger.handlers), 1)
+        
+        # Test that logging works
+        pgpubsub_logger.info("Test message")
+        
+        # Verify log file was created
+        self.assertTrue(os.path.exists(self.log_file))
+        
+        # Verify log content
+        with open(self.log_file, 'r') as f:
+            content = f.read()
+            self.assertIn("Test message", content)
