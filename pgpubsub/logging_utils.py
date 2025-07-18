@@ -78,6 +78,7 @@ def configure_django_logging_for_pgpubsub() -> dict:
         # Merge pgpubsub logging config
         pgpubsub_config = configure_django_logging_for_pgpubsub()
         LOGGING['handlers'].update(pgpubsub_config['handlers'])
+        LOGGING['formatters'].update(pgpubsub_config['formatters'])
         LOGGING['loggers'].update(pgpubsub_config['loggers'])
     """
     log_dir = os.getenv("PGPUBSUB_LOG_DIR", "./logs")
@@ -105,3 +106,46 @@ def configure_django_logging_for_pgpubsub() -> dict:
             },
         },
     }
+
+
+def integrate_pgpubsub_logging_with_django(logging_config: dict) -> dict:
+    """
+    Safely integrate pgpubsub logging with an existing Django LOGGING configuration.
+    
+    This function modifies the logging_config dict in-place and returns it.
+    
+    Args:
+        logging_config: Your existing Django LOGGING configuration dict
+        
+    Returns:
+        The updated logging configuration dict
+        
+    Example:
+        # In settings.py
+        from pgpubsub.logging_utils import integrate_pgpubsub_logging_with_django
+        
+        LOGGING = {
+            'version': 1,
+            'disable_existing_loggers': False,
+            # ... your existing logging config ...
+        }
+        
+        # Integrate pgpubsub logging
+        LOGGING = integrate_pgpubsub_logging_with_django(LOGGING)
+    """
+    pgpubsub_config = configure_django_logging_for_pgpubsub()
+    
+    # Initialize sections if they don't exist
+    if 'handlers' not in logging_config:
+        logging_config['handlers'] = {}
+    if 'formatters' not in logging_config:
+        logging_config['formatters'] = {}
+    if 'loggers' not in logging_config:
+        logging_config['loggers'] = {}
+    
+    # Update with pgpubsub configuration
+    logging_config['handlers'].update(pgpubsub_config['handlers'])
+    logging_config['formatters'].update(pgpubsub_config['formatters'])
+    logging_config['loggers'].update(pgpubsub_config['loggers'])
+    
+    return logging_config

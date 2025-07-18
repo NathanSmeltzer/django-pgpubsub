@@ -44,6 +44,7 @@ setup_pgpubsub_logging(
 
 For Django projects, you can integrate pgpubsub logging with your existing `LOGGING` configuration:
 
+### Option A: Manual Integration (more control)
 ```python
 # In your settings.py
 import os
@@ -71,8 +72,36 @@ LOGGING = {
 # Merge pgpubsub logging configuration
 pgpubsub_config = configure_django_logging_for_pgpubsub()
 LOGGING['handlers'].update(pgpubsub_config['handlers'])
+LOGGING['formatters'].update(pgpubsub_config['formatters'])  # Don't forget this!
 LOGGING['loggers'].update(pgpubsub_config['loggers'])
-LOGGING['formatters'].update(pgpubsub_config['formatters'])
+```
+
+### Option B: Automatic Integration (simpler)
+```python
+# In your settings.py
+from pgpubsub.logging_utils import integrate_pgpubsub_logging_with_django
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+    },
+}
+
+# Automatically integrate pgpubsub logging
+LOGGING = integrate_pgpubsub_logging_with_django(LOGGING)
 ```
 
 ## Log Files
