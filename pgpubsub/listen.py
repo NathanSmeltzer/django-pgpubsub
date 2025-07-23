@@ -206,6 +206,8 @@ class LockableNotificationProcessor(NotificationProcessor):
                     self.notification = notification
                     self._execute()
                     self.notification.delete()
+                else:
+                    logger.info(f'No notification found for model instance ID {object_id}')
 
         except Exception as e:
             logger.error(f"Error while trying to find notification by ID: {e}", exc_info=e)
