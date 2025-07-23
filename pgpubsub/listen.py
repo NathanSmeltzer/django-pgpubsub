@@ -3,6 +3,7 @@ import logging
 import multiprocessing
 import select
 import sys
+import json
 from typing import List, Optional, Union
 
 from django.conf import settings
@@ -183,6 +184,33 @@ class LockableNotificationProcessor(NotificationProcessor):
         if self.notification.payload == '':
             raise InvalidNotificationProcessor
 
+    # todo: test
+    def process_by_id(self):
+        """To account for payload drift where the payload filter cannot find the notification
+        due to a field in the model instance changing"""
+        try:
+            payload_data = json.loads(self.notification.payload)
+            if 'new' in payload_data and 'id' in payload_data['new']:
+                object_id = payload_data['new']['id']
+                logger.info(f'Exact payload failed, trying model instance ID {object_id}')
+
+                id_filter = Q(payload__new__id=object_id) & get_extra_filter()
+                notification = Notification.objects.select_for_update(
+                    skip_locked=True).filter(
+                    id_filter,
+                    channel=self.notification.channel,
+                ).first()
+
+                if notification:
+                    logger.info(f'Obtained lock via model instance ID: {notification.id}')
+                    self.notification = notification
+                    self._execute()
+                    self.notification.delete()
+
+        except Exception as e:
+            logger.error(f"Error while trying to find notification by ID: {e}", exc_info=e)
+            pass
+
     def process(self):
         logger.info(
             f'Processing notification for {self.channel_cls.name()}')
@@ -199,8 +227,10 @@ class LockableNotificationProcessor(NotificationProcessor):
             ).first()
         )
         if notification is None:
+
             logger.info(f'Could not obtain a lock on notification '
-                        f'{self.notification.pid}\n')
+                        f'{self.notification.pid}. Attempt to process by id.\n')
+            self.process_by_id()
             notification_without_skip_locked = (
                 Notification.objects.select_for_update(
                     skip_locked=False).filter(
