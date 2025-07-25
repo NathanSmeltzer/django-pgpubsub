@@ -25,6 +25,78 @@ def create_test_processor(pg_notification):
     return processor
 
 
+# todo: complete
+@pytest.mark.django_db(transaction=True)
+def test_process_by_id_exp():
+    """Test that process_by_id can find notification when exact payload matching fails"""
+    # Create an author to work with
+    author = Author.objects.create(name='Test Author', age=30)
+
+    # Clear any auto-generated notifications from the Author creation
+    Notification.objects.all().delete()
+
+    # Use the actual channel name from AuthorTriggerChannel
+    channel_name = AuthorTriggerChannel.listen_safe_name()
+
+    # Create a notification with original payload
+    original_payload = {
+        'app': 'tests',
+        'model': 'Author',
+        'new': {
+            'id': author.id,
+            'name': 'Test Author',
+            'age': 30,
+            'active': True
+        },
+        'old': {
+            'id': author.id,
+            'name': 'Old Name',
+            'age': 25,
+            'active': True
+        }
+    }
+
+    notification = Notification.objects.create(
+        channel=channel_name,
+        payload=original_payload
+    )
+
+    # Create a Postgres notification with drifted payload (age changed)
+    drifted_payload = {
+        'app': 'tests',
+        'model': 'Author',
+        'new': {
+            'id': author.id,
+            'name': 'Test Author',
+            'age': 35,  # This changed, causing payload mismatch
+            'active': True
+        },
+        'old': {
+            'id': author.id,
+            'name': 'Old Name',
+            'age': 30,  # This also changed
+            'active': True
+        }
+    }
+
+    # Create mock Postgres notification
+    pg_notification = Mock(spec=Notify)
+    pg_notification.payload = json.dumps(drifted_payload)
+    pg_notification.channel = channel_name
+    pg_notification.pid = 12345
+
+    # Create processor with proper setup
+    processor = create_test_processor(pg_notification)
+
+    # Count notifications before
+    initial_count = Notification.objects.count()
+    assert initial_count == 1
+
+    # Call process_by_id method within transaction context (as it would be in production)
+    with transaction.atomic():
+        processor.process_by_id()
+
+
 @pytest.mark.django_db(transaction=True)
 def test_process_by_id_success():
     """Test that process_by_id can find notification when exact payload matching fails"""

@@ -236,17 +236,7 @@ class LockableNotificationProcessor(NotificationProcessor):
             logger.info(f'Could not obtain a lock on notification '
                         f'{self.notification.pid}. Attempt to process by id.\n')
             self.process_by_id()
-            notification_without_skip_locked = (
-                Notification.objects.select_for_update(
-                    skip_locked=False).filter(
-                    payload_filter,
-                    channel=self.notification.channel,
-                ).first()
-            )
-            logger.info(f"locked pgpubsub notification: {notification_without_skip_locked}")
-            logger.info(f"payload filter: {payload_filter}")
-            logger.info(f"channel: {self.notification.channel}")
-            logger.info(f"postgres notification payload {self.notification.payload}")
+            logger.info(f"payload {self.notification.payload}")
         else:
             logger.info(f'Obtained lock on {notification}')
             self.notification = notification
