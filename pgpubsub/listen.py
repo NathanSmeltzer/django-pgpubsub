@@ -184,7 +184,6 @@ class LockableNotificationProcessor(NotificationProcessor):
         if self.notification.payload == '':
             raise InvalidNotificationProcessor
 
-    # todo: test
     def process_by_id(self):
         """To account for payload drift where the payload filter cannot find the notification
         due to a field in the model instance changing"""
