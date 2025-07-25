@@ -192,13 +192,17 @@ class LockableNotificationProcessor(NotificationProcessor):
             if 'new' in payload_data and 'id' in payload_data['new']:
                 object_id = payload_data['new']['id']
                 logger.info(f'Exact payload failed, trying model instance ID {object_id}')
-
-                id_filter = Q(payload__new__id=object_id) & get_extra_filter()
+                # removed  get_extra_filter() since still wasn't finding
+                id_filter = Q(payload__new__id=object_id)
                 notification = Notification.objects.select_for_update(
                     skip_locked=True).filter(
                     id_filter,
                     channel=self.notification.channel,
                 ).first()
+
+                if not notification:
+                    # try without the extra filter
+                    id_filter = Q(payload__new__id=object_id)
 
                 if notification:
                     logger.info(f'Obtained lock via model instance ID: {notification.id}')
