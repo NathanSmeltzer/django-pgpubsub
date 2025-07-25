@@ -67,7 +67,7 @@ class TestListenCommand(TestCase):
         os.rmdir(test_log_dir)
         os.rmdir(os.path.join(self.temp_dir, "non_existent"))
 
-    @pytest.skip("unsure why this is failing")
+    @pytest.mark.skip("unsure why this is failing")
     @patch('pgpubsub.management.commands.listen.listen')
     @patch.dict(os.environ, {'PGPUBSUB_LOG_DIR': ''})
     def test_listen_command_log_level_and_format(self, mock_listen):
